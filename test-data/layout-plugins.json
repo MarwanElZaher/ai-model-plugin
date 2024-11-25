@@ -1,0 +1,33 @@
+{
+    "map-container": [],
+    "menu-component-container": [],
+    "c3-container": [],
+    "c4-container": [],
+    "map-overlay": [],
+    "modal-container": [],
+    "side-bar": [
+        {
+            "pluginId": "ai-model-plugin",
+            "components": [
+                {
+                    "id": "MapClickResult",
+                    "show": false
+                }
+            ]
+        }
+    ],
+    "map-navigation": [],
+    "menu-trigger-container": [
+        {
+            "pluginId": "ai-model-plugin",
+            "components": [
+                {
+                    "id": "MapClick",
+                    "show": true
+                }
+            ]
+        }
+    ],
+    "search-trigger-container": [],
+    "other-trigger-container": []
+}
