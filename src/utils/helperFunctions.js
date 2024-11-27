@@ -22,11 +22,19 @@ export const GEOJSONToFeature = async (GEOJSON) => {
 export const zoomToFeature = (featRef) => {
   dispatch("zoomToFeatures", featRef);
 };
-export const zoomIn = () => {
-  dispatch("zoomIn");
+export const zoomIn = (zoomLevel) => {
+  if (zoomLevel) {
+    dispatch("setZoom", zoomLevel);
+  } else {
+    dispatch("zoomIn");
+  }
 };
-export const zoomOut = () => {
-  dispatch("zoomOut");
+export const zoomOut = (zoomLevel) => {
+  if (zoomLevel) {
+    dispatch("setZoom", -zoomLevel);
+  } else {
+    dispatch("zoomOut");
+  }
 };
 export const setZoom = (level) => {
   dispatch("setZoom", level);
