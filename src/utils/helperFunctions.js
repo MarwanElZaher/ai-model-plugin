@@ -60,7 +60,9 @@ export const zoomOut = () => {
 export const setZoom = (level) => {
   dispatch("setZoom", level);
 };
-
+export const resetMap = () => {
+  dispatch("resetMap");
+};
 export const highlightFeature = (featRef) => {
   dispatch("addHighlight", featRef);
 };
@@ -68,7 +70,9 @@ export const highlightFeature = (featRef) => {
 export const clearHighlights = () => {
   dispatch("clearHighlight");
 };
-
+export const layerVisibility = (layerId, visibility) => {
+  storeDispatch('setLayerVisibility', layerId, visibility);
+};
 // export const generateBuffer = (GEOJSON, distance_in_meters) => {
 //   return buffer(GEOJSON, distance_in_meters, { units: "meters" });
 // };
