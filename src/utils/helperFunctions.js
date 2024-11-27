@@ -12,35 +12,6 @@ export const notify = (message, type) => {
   storeDispatch(systemAddNotification(message, type));
 };
 
-export const geminiResponseHandler = (modelResponse) => {
-  if (!modelResponse) return;
-  const { action, degree, target } = modelResponse;
-  switch (action) {
-    case "zoomIn":
-      if (degree) {
-        setZoom(degree);
-      } else {
-        zoomIn();
-      }
-      break;
-    case "zoomOut":
-      if (degree) {
-        setZoom(-degree);
-      } else {
-        zoomOut();
-      }
-      break;
-    case "setZoom":
-      setZoom(degree);
-      break;
-    case "highlight":
-      highlightFeature(target);
-      break;
-
-    default:
-      break;
-  }
-}
 
 export const GEOJSONToFeature = async (GEOJSON) => {
   return await apiRegistry.getApis(["Feature"]).then(([Feature]) => {
