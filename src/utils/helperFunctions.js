@@ -55,18 +55,6 @@ export const purge = () => {
   clearHighlights();
 };
 
-export const handleResponseParsing = (response) => {
-  try {
-    const cleanedResponse = response.replace(/```json|```/g, "").trim();
-
-    const parsedResponse = JSON.parse(cleanedResponse);
-    console.log(parsedResponse, "parsedResponse")
-    return parsedResponse
-  } catch (error) {
-    console.error('Error parsing the response:', error);
-    return null;
-  }
-};
 
 
 
