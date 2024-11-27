@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { clearHighlights, GEOJSONToFeature, highlightFeature, layerVisibility, resetMap, setZoom, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
+import { clearHighlights, GEOJSONToFeature, highlightFeature, layerVisibility, notify, resetMap, setZoom, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
 import { executeQuery } from '../../utils/query';
 import SpeechToText from '../SpeechToText';
 
@@ -83,9 +83,8 @@ function ModalPreview({ settings, features }) {
       const response = result.response.text();
       const cleanedResponse = response
         .match(/```(?:json)?\n([\s\S]*?)```/m)?.[1] // Extract content within ``` ```
-        ?.trim()                                    // Remove any extra whitespace
-        .replace(/[\u200B-\u200D\uFEFF]/g, '')    // Remove zero-width spaces
-        .replace(/```json\n?/g, '');  // Remove ```json with optional newline
+        ?.replace(/\/\/[^\n]*/g, '')               // Remove inline comments
+        ?.trim();                                  // Remove extra whitespace
 
       console.log('Cleaned response:', cleanedResponse);
       const actions = JSON.parse(cleanedResponse);
@@ -156,7 +155,10 @@ function ModalPreview({ settings, features }) {
           action.parameters.returns,
           action.parameters.conditionList
         );
-        if (!queryResponse) return;
+        if (!queryResponse || !queryResponse?.data?.[0]?.count) {
+          notify(`There is no featrure with that name`, "info");
+          return;
+        }
         const parsedFeature = JSON.parse(queryResponse?.data?.[0]?.features)
         actionContext.tagertedFeatureRef = parsedFeature
         break;
