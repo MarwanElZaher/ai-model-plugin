@@ -53,7 +53,7 @@ function ModalPreview({ settings, features }) {
         {
           "type": "map_interaction",
           "action": "zoom|pan|highlight|showLayer|hideLayer",
-          "target": "layerId",
+          "target": "layer.id",
           "parameters": { additional_details }
         },
         {
@@ -121,13 +121,17 @@ function ModalPreview({ settings, features }) {
    */
   const executeMapAction = async (action) => {
     console.log(action, 'action', 'map')
-    if (!actionContext.tagertedFeatureRef) return;
-    const formDataFeatRef = await GEOJSONToFeature(actionContext.tagertedFeatureRef?.features?.[0]);
+    let formDataFeatRef
+    if (actionContext.tagertedFeatureRef) {
+      formDataFeatRef = await GEOJSONToFeature(actionContext.tagertedFeatureRef?.features?.[0]);
+    }
     switch (action.action) {
       case 'zoom':
+        if (!formDataFeatRef) return;
         zoomToFeature(formDataFeatRef);
         break;
       case 'highlight':
+        if (!formDataFeatRef) return;
         highlightFeature(formDataFeatRef);
         break;
       case 'pan':

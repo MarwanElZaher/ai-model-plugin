@@ -39,8 +39,10 @@ export const zoomOut = (zoomLevel) => {
 export const setZoom = (level) => {
   dispatch("setZoom", level);
 };
+//to do map extent
 export const resetMap = () => {
-  dispatch("resetMap");
+  dispatch("clearHighlight");
+  dispatch("setZoom", 0);
 };
 export const highlightFeature = (featRef) => {
   dispatch("addHighlight", featRef);
@@ -50,7 +52,7 @@ export const clearHighlights = () => {
   dispatch("clearHighlight");
 };
 export const layerVisibility = (layerId, visibility) => {
-  storeDispatch('setLayerVisibility', layerId, visibility);
+  dispatch('setLayerVisibility', layerId, visibility);
 };
 // export const generateBuffer = (GEOJSON, distance_in_meters) => {
 //   return buffer(GEOJSON, distance_in_meters, { units: "meters" });
