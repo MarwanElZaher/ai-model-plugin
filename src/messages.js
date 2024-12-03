@@ -8,5 +8,5 @@ export default {
     "title": "ai-model-plugin",
     icon: Icon,
     deactivateMic: MicOff,
-    micActivated: MicOn
+    activateMic: MicOn
 }
