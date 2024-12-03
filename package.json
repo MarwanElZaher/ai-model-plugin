@@ -41,6 +41,7 @@
     "react-speech-recognition": "^3.10.0",
     "react-svg": "^16.2.0",
     "redux": "^4.0.1",
-    "talkify-tts": "^4.0.0"
+    "talkify-tts": "^4.0.0",
+    "@penta-b/grid": "^1.0.24"
   }
 }
