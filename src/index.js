@@ -10,14 +10,16 @@ import { LOCALIZATION_NAMESPACE } from './constants/constants';
 import ModalTrigger from './components/ModalTrigger';
 import ModalPreview from './components/ModalPreview';
 import reducer from '../src/reducers/reducer';
-import { clearResponse, setModelResponse } from './actions/actions';
+import { clearResponse, setGridVisible, setModalResponse, setNewComponentId, setUserQuery } from './actions/actions';
+import GridView from './components/GridView';
 
 ModalTrigger.Title = LOCALIZATION_NAMESPACE + ":title";
 ModalTrigger.Icon = LOCALIZATION_NAMESPACE + ":icon";
 
 const components = {
     ModalTrigger,
-    ModalPreview
+    ModalPreview,
+    GridView
 };
 
 const reducers = {
@@ -25,8 +27,11 @@ const reducers = {
 }
 
 const actions = {
-    setModelResponse,
-    clearResponse
+    setModalResponse,
+    clearResponse,
+    setUserQuery,
+    setGridVisible,
+    setNewComponentId
 }
 
 const localization = {

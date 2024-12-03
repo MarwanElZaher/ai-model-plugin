@@ -1,20 +1,38 @@
-import { SET_MODEL_RESPONSE, CLEAR_RESPONSE } from "../actions/actions";
+import { SET_MODAL_RESPONSE, CLEAR_RESPONSE, SET_GRID_VISIBLE, SET_USER_QUERY, SET_NEW_COMPONENT_ID } from "../actions/actions";
 
 const initState = {
-  response: "",
+  modalResponse: [],
+  userQuery: "",
+  isGridVisible: false,
+  componentId: null,
 };
 
 const reducer = (state = initState, action) => {
   switch (action.type) {
-    case SET_MODEL_RESPONSE:
+    case SET_MODAL_RESPONSE:
       return {
         ...state,
-        response: action.payload,
+        modalResponse: action.payload,
       };
     case CLEAR_RESPONSE:
       return {
         ...state,
-        response: "",
+        modalResponse: [],
+      };
+    case SET_USER_QUERY:
+      return {
+        ...state,
+        userQuery: action.payload,
+      };
+    case SET_GRID_VISIBLE:
+      return {
+        ...state,
+        isGridVisible: action.payload,
+      };
+    case SET_NEW_COMPONENT_ID:
+      return {
+        ...state,
+        componentId: action.payload,
       };
     default:
       return state;
