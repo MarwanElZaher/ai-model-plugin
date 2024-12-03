@@ -1,11 +1,13 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { clearHighlights, GEOJSONToFeature, highlightFeature, layerVisibility, notify, resetMap, setZoom, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
-import { executeQuery } from '../../utils/query';
+import { clearHighlights, executeDataAction, highlightFeature, layerVisibility, resetMap, setZoom, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
+import { withLocalize, selectorsRegistry, actionsRegistry } from '@penta-b/ma-lib';
 import SpeechToText from '../SpeechToText';
+import { connect } from 'react-redux';
+import { GRID_VIEW, LOCALIZATION_NAMESPACE } from '../../constants/constants';
+import { clearResponse, setGridVisible, setModalResponse, setNewComponentId, setUserQuery } from '../../actions/actions';
 
-function ModalPreview({ settings, features }) {
-  const [userQuery, setUserQuery] = useState("");
+function ModalPreview({ settings, features, projection, userQuery, setUsersQuery, gridVisible, setGridVisiblity, componentId, setNewId, showGrid, removeComponent, setResponse }) {
 
   // a shared context to store results between actions
   let actionContext = {
@@ -14,10 +16,34 @@ function ModalPreview({ settings, features }) {
   const genAI = new GoogleGenerativeAI(process.env.REACT_APP_GEMINI_API_KEY);
 
   useEffect(() => {
-    if (userQuery) {
+    if (gridVisible && !componentId) {
+      showGrid({}, (id) => {
+        setNewId(id);
+      });
+    }
+  }, [gridVisible, componentId]);
+
+  // Separate useEffect for component removal
+  useEffect(() => {
+    if (!gridVisible && componentId) {
+      removeComponent(componentId);
+    }
+  }, [gridVisible, componentId]);
+
+  useEffect(() => {
+    if (userQuery.length > 0) {
+      // Remove existing grid component first
+      if (componentId) {
+        removeComponent(componentId);
+        setNewId(null);
+      }
+      // Then reset grid visibility state
+      setGridVisiblity(false);
+      // Finally dispatch actions for the new query
       dispatchActions();
     }
   }, [userQuery]);
+
 
   const dispatchActions = useCallback(async () => {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -61,10 +87,11 @@ function ModalPreview({ settings, features }) {
           "action": "query",
           "target": layer.id,
           "parameters": {
-           conditionList : {tabularCondition|spatialCondition :{key: fieldName, operator: [ilike], value: {"%value%"}}},
-            crs: selectedLayer.crs,
-            dataSource: {id: selectedLayer.id}
-          },
+              layerId: {layer.id} //layerId is the uuid of the layer, 
+              "crs": layer.crs,
+              "searchText": "{searchText}"
+              }
+        },
         {
           "type": "map_control",
           "action": "zoomIn|zoomOut|setZoom|reset|clear|clearHighlights",
@@ -99,7 +126,7 @@ function ModalPreview({ settings, features }) {
               await executeMapAction(action);
               break;
             case 'data_operation':
-              await executeDataAction(action);
+              await executeDataAction(action, actionContext, projection, setGridVisiblity, setResponse);
               break;
             case 'map_control':
               await executeMapControlAction(action);
@@ -121,20 +148,14 @@ function ModalPreview({ settings, features }) {
    */
   const executeMapAction = async (action) => {
     console.log(action, 'action', 'map')
-    let formDataFeatRef
-    if (actionContext.tagertedFeatureRef) {
-      formDataFeatRef = await GEOJSONToFeature(actionContext.tagertedFeatureRef?.features?.[0]);
-    }
     switch (action.action) {
       case 'zoom':
-        if (!formDataFeatRef) return;
-        zoomToFeature(formDataFeatRef);
+        if (!actionContext.tagertedFeatureRef) return
+        zoomToFeature(actionContext.tagertedFeatureRef);
         break;
       case 'highlight':
-        if (!formDataFeatRef) return;
-        highlightFeature(formDataFeatRef);
-        break;
-      case 'pan':
+        if (!actionContext.tagertedFeatureRef) return
+        highlightFeature(actionContext.tagertedFeatureRef);
         break;
       case 'showLayer':
         layerVisibility(action.target, true);
@@ -145,29 +166,8 @@ function ModalPreview({ settings, features }) {
     }
   };
 
-  /**
-   * Executes data query on a specfic layer, feature
-   * @param {*} action action object
-   */
-  const executeDataAction = async (action) => {
-    console.log(action, 'action', 'data')
-    switch (action.action) {
-      case 'query':
-        const queryResponse = await executeQuery(
-          action.parameters.dataSource,
-          action.parameters.crs,
-          action.parameters.returns,
-          action.parameters.conditionList
-        );
-        if (!queryResponse || !queryResponse?.data?.[0]?.count) {
-          notify(`There is no featrure with that name`, "info");
-          return;
-        }
-        const parsedFeature = JSON.parse(queryResponse?.data?.[0]?.features)
-        actionContext.tagertedFeatureRef = parsedFeature
-        break;
-    }
-  };
+
+
 
   /**
    * Executes map control actions
@@ -195,17 +195,49 @@ function ModalPreview({ settings, features }) {
   };
 
   return (
-    <div>
-      {/* <input
-        value={userQuery}
-        onChange={(e) => setUserQuery(e.target.value)}
-        placeholder="Describe desired map/data interaction"
-      />
-      <button onClick={dispatchActions}>Execute Actions</button> */}
-      <SpeechToText lastTranscript={userQuery} setLastTranscript={setUserQuery} />
+    <div className='cc-body'>
+      <div className='container-c'>
 
+        <SpeechToText userQuery={userQuery} setUserQuery={setUsersQuery} />
+      </div>
     </div>
   );
 }
+const mapStateToProps = (state, { reducerId }) => {
+  return {
+    componentId: state.reducer.componentId,
+    userQuery: state.reducer.userQuery,
+    modelResponse: state.reducer.modelResponse,
+    gridVisible: state.reducer.isGridVisible,
+    projection: selectorsRegistry.getSelector(
+      "selectMapProjection",
+      state,
+      reducerId
+    ),
+  };
+};
 
-export default ModalPreview;
+const mapDispatchToProps = (dispatch) => {
+  return {
+    setNewId: (componentId) => dispatch(setNewComponentId(componentId)),
+    showGrid: (props, onAdd, onRemove) =>
+      dispatch(
+        actionsRegistry.getActionCreator(
+          'showComponent',
+          LOCALIZATION_NAMESPACE,
+          GRID_VIEW,
+          props,
+          onAdd,
+          onRemove
+        )
+      ),
+    setResponse: (response) => dispatch(setModalResponse(response)),
+    clearModalResponse: () => dispatch(clearResponse()),
+    setUsersQuery: (userQuery) => dispatch(setUserQuery(userQuery)),
+    setGridVisiblity: (isGridVisible) => dispatch(setGridVisible(isGridVisible)),
+    removeComponent: (id) => {
+      return dispatch(actionsRegistry.getActionCreator('removeComponent', id));
+    },
+  }
+};
+export default withLocalize(connect(mapStateToProps, mapDispatchToProps)(ModalPreview), LOCALIZATION_NAMESPACE);

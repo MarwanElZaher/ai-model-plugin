@@ -4,6 +4,7 @@ import {
   actionsRegistry, withLocalize,
 } from '@penta-b/ma-lib';
 import { terminate } from '../../utils/helperFunctions';
+import { LOCALIZATION_NAMESPACE } from '../../constants/constants';
 let componentId = null;
 
 const ModalTrigger = ({ showComponent, removeComponent, t, deactivate, isActive }) => {
@@ -34,4 +35,4 @@ const mapDispatchToProps = (dispatch) => {
   }
 }
 
-export default withLocalize(connect(null, mapDispatchToProps)(ModalTrigger));
+export default withLocalize(connect(null, mapDispatchToProps)(ModalTrigger), LOCALIZATION_NAMESPACE);

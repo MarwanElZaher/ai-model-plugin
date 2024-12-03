@@ -1,9 +1,15 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
-import { connect } from 'react-redux';
+import { getLocale } from '@penta-b/ma-lib';
 import { withLocalize } from '@penta-b/ma-lib';
 import { LOCALIZATION_NAMESPACE } from '../../constants/constants';
-const SpeechToText = ({ lastTranscript, setLastTranscript }) => {
+import { debounce } from '../../utils/helperFunctions';
+import CustomButton from '../CustomButton';
+import { connect } from 'react-redux';
+const SpeechToText = ({ userQuery, setUserQuery, t }) => {
+    const [inputValue, setInputValue] = useState(userQuery);
+    const locale = getLocale()?.name || "ar";
+
     const {
         transcript,
         listening,
@@ -11,21 +17,45 @@ const SpeechToText = ({ lastTranscript, setLastTranscript }) => {
         browserSupportsSpeechRecognition
     } = useSpeechRecognition();
 
+
+    const debouncedSetUserQuery = useCallback(
+        debounce((value) => {
+            setUserQuery(value);
+        }, 600),
+        []
+    );
+
     useEffect(() => {
-        if (transcript !== lastTranscript && !listening) {
-            setLastTranscript(transcript);
+        if (transcript !== "" && transcript !== userQuery && !listening) {
+            setUserQuery(transcript);
+            setInputValue(transcript);
+
         }
-    }, [transcript, listening, lastTranscript]);
+    }, [transcript, listening]);
 
     const startRecording = () => {
+        setUserQuery("");
+        setInputValue("");
+
         resetTranscript();
-        SpeechRecognition.startListening({ language: "ar-eg", continues: true });
+        SpeechRecognition.startListening({ language: locale.toLowerCase() == "ar" ? "ar-eg" : "en-US", continues: true });
     };
 
     const stopRecording = () => {
         SpeechRecognition.stopListening();
     };
 
+    const handleTyping = (e) => {
+        const value = e.target.value;
+        setInputValue(value);
+        debouncedSetUserQuery(value);
+    };
+
+    useEffect(() => {
+        return () => {
+            debouncedSetUserQuery.cancel();
+        };
+    }, [debouncedSetUserQuery]);
 
 
     if (!browserSupportsSpeechRecognition) {
@@ -33,19 +63,19 @@ const SpeechToText = ({ lastTranscript, setLastTranscript }) => {
     }
 
     return (
-        <div className='chat-model-container'>
-            <p>Microphone: {listening ? 'on' : 'off'}</p>
-            <button onClick={startRecording}>Start</button>
-            <button onClick={stopRecording}>Stop</button>
-            <div className='message-container'>
-                <label>Message:</label>
-                <p>{transcript}</p>
+        <div className='penta-container-space-between'>
+            <input
+                className='penta-textbox'
+                value={listening ? transcript : inputValue}
+                onChange={handleTyping}
+                placeholder="Describe desired map/data interaction"
+            />
+            <div className='penta-buttons-container'>
+                <CustomButton className={listening ? 'penta-button-svg-title penta-sub-button' : 'penta-button-svg-title penta-main-button'} onClick={listening ? stopRecording : startRecording} label={listening ? t("Disable-Mic") : t("Enable-mic")} title={listening ? t("Disable-Voice-Recognition") : t("Enable-Vocie-Recognition")} iconKey={listening ? t('deactivateMic') : t('activateMic')} />
             </div>
-
         </div>
     );
 };
-
 const mapStateToProps = (state, ownProps) => {
     return {
     };
