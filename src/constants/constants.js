@@ -1,4 +1,10 @@
 export const LOCALIZATION_NAMESPACE = "ai-model-plugin";
+export const GRID_VIEW = "GridView";
+// grid options 
+export const GRID_FILTERABLE = false;
+export const GRID_SORTABLE = false;
+export const GRID_PAGE_SIZE_OPTIONS = [2, 10];
+export const GRID_PAGE_SIZE = 10;
 
 export const prompts = `
 You are an assistant that processes user commands to manipulate a map. When a user gives a command, you should return a structured response with the action and target location or feature.
