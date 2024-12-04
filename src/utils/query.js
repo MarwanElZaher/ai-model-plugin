@@ -53,7 +53,6 @@ const executeQueryEndPoint = async (queryData) => {
             event
         );
         store.dispatch(systemHideLoading());
-        notify("errorMessage", "error");
         return null;
     } finally {
         store.dispatch(systemHideLoading());
