@@ -1,9 +1,9 @@
 export const LOCALIZATION_NAMESPACE = "ai-model-plugin";
 export const GRID_VIEW = "GridView";
 // grid options 
-export const GRID_FILTERABLE = false;
-export const GRID_SORTABLE = false;
-export const GRID_PAGE_SIZE_OPTIONS = [2, 10];
+export const GRID_FILTERABLE = true;
+export const GRID_SORTABLE = true;
+export const GRID_PAGE_SIZE_OPTIONS = [5, 10];
 export const GRID_PAGE_SIZE = 10;
 
 export const prompts = `
