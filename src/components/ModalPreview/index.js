@@ -1,13 +1,13 @@
 import React, { useCallback, useEffect } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { clearHighlights, executeDataAction, highlightFeature, layerVisibility, resetMap, setZoom, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
+import { clearHighlights, executeDataAction, highlightFeatureGeometry, layerVisibility, notify, resetMap, setZoom, terminate, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
 import { withLocalize, selectorsRegistry, actionsRegistry } from '@penta-b/ma-lib';
 import SpeechToText from '../SpeechToText';
 import { connect } from 'react-redux';
 import { GRID_VIEW, LOCALIZATION_NAMESPACE } from '../../constants/constants';
 import { clearResponse, setGridVisible, setModalResponse, setNewComponentId, setUserQuery } from '../../actions/actions';
 
-function ModalPreview({ settings, features, projection, userQuery, setUsersQuery, gridVisible, setGridVisiblity, componentId, setNewId, showGrid, removeComponent, setResponse }) {
+function ModalPreview({ settings, features, projection, userQuery, setUsersQuery, gridVisible, setGridVisiblity, componentId, setNewId, showGrid, removeComponent, setResponse, modalResponse, t }) {
 
   // a shared context to store results between actions
   let actionContext = {
@@ -17,8 +17,12 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
 
   useEffect(() => {
     if (gridVisible && !componentId) {
-      showGrid({}, (id) => {
+      showGrid({ title: t("features with similar spelling"), icon: t("icon") }, (id) => {
         setNewId(id);
+      }, () => {
+        setResponse([])
+        setGridVisiblity(false)
+        setNewId(null)
       });
     }
   }, [gridVisible, componentId]);
@@ -26,20 +30,13 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
   // Separate useEffect for component removal
   useEffect(() => {
     if (!gridVisible && componentId) {
-      removeComponent(componentId);
+      terminate(componentId, removeComponent);
+      setResponse([]);
     }
   }, [gridVisible, componentId]);
 
   useEffect(() => {
     if (userQuery.length > 0) {
-      // Remove existing grid component first
-      if (componentId) {
-        removeComponent(componentId);
-        setNewId(null);
-      }
-      // Then reset grid visibility state
-      setGridVisiblity(false);
-      // Finally dispatch actions for the new query
       dispatchActions();
     }
   }, [userQuery]);
@@ -62,6 +59,18 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
       }).join('\n');
     }
 
+    const gridDataHandler = () => {
+      const gridData = modalResponse?.map((feature) => {
+        return `
+        featureId: ${feature.id},
+        featureNameAr: ${feature.display_data_ar},
+        featureNameEn: ${feature.display_data_en}
+        `;
+      }).join('\n');
+      return `
+        Grid Data: ${gridData}
+      `;
+    }
     const prompt = `
       Context:
       - Map controls are global actions that affect the map as a whole (e.g., zooming in/out, resetting the map, clearing highlights).
@@ -69,13 +78,28 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
        - User can request multiple actions in a single sentence, such as "zoom and highlight".
       - Each requested action should be treated as a separate JSON object within the response array.
       - Map interactions (e.g., zoom, highlight) target specific features or layers.
+       
+      - When the user mentions "grid" in the "${userQuery}", prioritize the use of the **grid_interaction** type for feature actions.
+       For example:
+      - "Zoom to the {id} from the grid" → grid_interaction with action zoomGridFeature.
+      - "Highlight this grid cell" → grid_interaction with action highlightGridFeature.
+      - For any grid-specific requests, avoid using data operations or map interactions
+      - ${gridDataHandler()} (contains current grid features)
+
       - If a feature needs to be highlighted, first perform a data operation to retrieve the feature, then zoom to and highlight it sequentially.
-      - Available Layers and Fields: ${layerFieldsHandler()}
+      - for example:
+        - User Request: "Zoom to Cairo" | "where is cairo" → data operation to retrieve Cairo feature, then map interaction to zoom to Cairo.
+        - User Request: "Highlight Cairo" | "where is cairo" → data operation to retrieve Cairo feature, then map interaction to highlight Cairo.
       - Available Layers and its fields: ${layerFieldsHandler()}
       User Request: ${userQuery}
       
       Respond with JSON array of actions:
       [
+        {
+        type: "grid_interaction",
+        action: "zoomGridFeature|highlightGridFeature|removeGrid",
+        target: feature.id,
+        },
         {
           "type": "map_interaction",
           "action": "zoom|pan|highlight|showLayer|hideLayer",
@@ -116,7 +140,10 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
       console.log('Cleaned response:', cleanedResponse);
       const actions = JSON.parse(cleanedResponse);
       console.log(actions, "actions")
-
+      if (!actions.length) {
+        notify("No actions found to execute, try another query eg. zoom to cairo gov", "info");
+        return;
+      }
 
 
       for (const action of actions) {
@@ -130,6 +157,9 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
               break;
             case 'map_control':
               await executeMapControlAction(action);
+              break;
+            case 'grid_interaction':
+              await executeGridAction(action);
               break;
           }
         } catch (actionError) {
@@ -155,13 +185,16 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
         break;
       case 'highlight':
         if (!actionContext.tagertedFeatureRef) return
-        highlightFeature(actionContext.tagertedFeatureRef);
+        highlightFeatureGeometry(actionContext.tagertedFeatureRef);
         break;
       case 'showLayer':
         layerVisibility(action.target, true);
         break;
       case 'hideLayer':
         layerVisibility(action.target, false);
+        break;
+      default:
+        console.warn(`Unknown map action: ${action.action}`);
         break;
     }
   };
@@ -191,6 +224,41 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
       case 'clearHighlights':
         clearHighlights();
         break;
+      default:
+        console.warn(`Unknown map control action: ${action.action}`);
+        break;
+    }
+  };
+  const executeGridAction = async (action) => {
+    console.log(action, 'action', 'grid');
+    if (!gridVisible) {
+      notify(t("There is no Grid to preform action on"), "info")
+    }
+    // Find the targeted feature based on the action's target
+    const targetedFeature = modalResponse.find(feature => feature.id == action.target);
+    // Parse the geometry only if the targeted feature exists
+    const featureGeometry = targetedFeature ? JSON.parse(targetedFeature.geom) : null;
+
+    switch (action.action) {
+      case 'zoomGridFeature':
+        if (featureGeometry) {
+          zoomToFeature(featureGeometry);
+        }
+        break;
+
+      case 'highlightGridFeature':
+        if (featureGeometry) {
+          highlightFeatureGeometry(featureGeometry);
+        }
+        break;
+
+      case 'removeGrid':
+        setGridVisiblity(false);
+        break;
+
+      default:
+        console.warn(`Unknown grid action: ${action.action}`);
+        break;
     }
   };
 
@@ -207,7 +275,7 @@ const mapStateToProps = (state, { reducerId }) => {
   return {
     componentId: state.reducer.componentId,
     userQuery: state.reducer.userQuery,
-    modelResponse: state.reducer.modelResponse,
+    modalResponse: state.reducer.modalResponse,
     gridVisible: state.reducer.isGridVisible,
     projection: selectorsRegistry.getSelector(
       "selectMapProjection",
