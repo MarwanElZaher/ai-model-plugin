@@ -19,9 +19,9 @@ export const GEOJSONToFeature = async (GEOJSON) => {
   });
 };
 
-// export const zoomToFeature = (featRef) => {
-//   dispatch("zoomToFeatures", featRef);
-// };
+export const zoomToFeatures = (featRef) => {
+  dispatch("zoomToFeatures", featRef);
+};
 
 //zoom to Feature function by using feature bbox 
 export const zoomToFeature = (geometry) => {
@@ -35,6 +35,17 @@ export const zoomToFeature = (geometry) => {
       });
 
       actionsRegistry.dispatch("setMapBBOX", feature.getBBox());
+    });
+}
+export const highlightFeatureGeometry = (geometry) => {
+  apiRegistry
+    .getApis(["Feature"])
+    .then(([Feature]) => {
+      const feature = new Feature({
+        type: "Feature",
+        geometry: geometry,
+        properties: {},
+      });
       actionsRegistry.dispatch("addHighlight", feature);
     });
 }
