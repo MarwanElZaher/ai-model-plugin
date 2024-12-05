@@ -131,14 +131,17 @@ export const handleQueryResponse = async (
   queryResponse,
   actionContext,
   setGridVisible,
-  setResponse
+  setResponse,
+  setMessage
 ) => {
   // Determine response type
   const responseType = getResponseType(queryResponse);
 
   switch (responseType) {
     case RESPONSE_TYPE.NONE:
-      notify("No features found matching your query", "info");
+      const message = "No features found matching your query";
+      setMessage(message);
+      notify(message, "info");
       return null;
 
     case RESPONSE_TYPE.SINGLE:
@@ -158,7 +161,7 @@ export const handleQueryResponse = async (
  * Executes data query on a specfic layer, feature
  * @param {*} action action object
  */
-export const executeDataAction = async (action, actionContext, projection, setGridVisible, setResponse) => {
+export const executeDataAction = async (action, actionContext, projection, setGridVisible, setResponse, setMessage) => {
   console.log(action, 'action', 'data')
 
   if (action.action != 'query') return;
@@ -169,6 +172,6 @@ export const executeDataAction = async (action, actionContext, projection, setGr
     mapProjection,
     action.parameters.searchText
   );
-  handleQueryResponse(queryResponse, actionContext, setGridVisible, setResponse);
+  handleQueryResponse(queryResponse, actionContext, setGridVisible, setResponse, setMessage);
 
 };

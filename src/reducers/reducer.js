@@ -1,10 +1,11 @@
-import { SET_MODAL_RESPONSE, CLEAR_RESPONSE, SET_GRID_VISIBLE, SET_USER_QUERY, SET_NEW_COMPONENT_ID } from "../actions/actions";
+import { SET_MODAL_RESPONSE, CLEAR_RESPONSE, SET_GRID_VISIBLE, SET_USER_QUERY, SET_NEW_COMPONENT_ID, SET_MODAL_MESSAGE } from "../actions/actions";
 
 const initState = {
   modalResponse: [],
   userQuery: "",
   isGridVisible: false,
   componentId: null,
+  modalMessage: "",
 };
 
 const reducer = (state = initState, action) => {
@@ -33,6 +34,11 @@ const reducer = (state = initState, action) => {
       return {
         ...state,
         componentId: action.payload,
+      };
+    case SET_MODAL_MESSAGE:
+      return {
+        ...state,
+        modalMessage: action.payload,
       };
     default:
       return state;
