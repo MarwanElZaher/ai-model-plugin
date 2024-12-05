@@ -65,13 +65,10 @@ const GridView = ({ features, t }) => {
     };
 
     return (
-        <>
-            <div>{t("Choose what Feature you want to see")}</div>
-            <GridComponents.Grid
-                settings={gridSettings}
-                trComponents={trComponents}
-            />
-        </>
+        <GridComponents.Grid
+            settings={gridSettings}
+            trComponents={trComponents}
+        />
     );
 
 }
