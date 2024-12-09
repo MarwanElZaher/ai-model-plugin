@@ -1,12 +1,27 @@
-import { componentRegistry } from '@penta-b/ma-lib'
+import { componentRegistry } from "@penta-b/ma-lib";
 
-const ZoomToFeatureButton = componentRegistry.getComponent("ZoomToFeatureButton")
-const HighlightFeatureButton = componentRegistry.getComponent("HighlightFeatureButton")
-const ClearHighlightButton = componentRegistry.getComponent("ClearHighlightButton")
-
+const ZoomToFeatureButton = componentRegistry.getComponent(
+    "ZoomToFeatureButton"
+);
+const HighlightButton = componentRegistry.getComponent(
+    "HighlightFeatureButton"
+);
+const UnHighlightButton = componentRegistry.getComponent(
+    "ClearHighlightButton"
+);
+const MoreInfoButton = componentRegistry.getComponent("MoreInfoButton");
 
 export const trComponents = [
+
     { component: ZoomToFeatureButton, settings: {} },
-    { component: HighlightFeatureButton, settings: {} },
-    { component: ClearHighlightButton, settings: {} },
-]
+    { component: HighlightButton, settings: {} },
+    { component: UnHighlightButton, settings: {} },
+    { component: MoreInfoButton, settings: { back: true } },
+];
+
+export const gridComponents = [
+
+    { component: ZoomToFeatureButton, settings: {} },
+    { component: HighlightButton, settings: {} },
+    { component: UnHighlightButton, settings: {} },
+];

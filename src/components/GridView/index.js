@@ -1,7 +1,7 @@
-import React from "react";
-import { withLocalize, getLocale } from '@penta-b/ma-lib';
+import React, { useEffect } from "react";
+import { withLocalize, getLocale, componentRegistry } from '@penta-b/ma-lib';
 import { components as GridComponents } from '@penta-b/grid';
-import { trComponents } from '../../constants/gridButtons';
+import { gridComponents, trComponents } from '../../constants/gridButtons';
 import { connect } from "react-redux";
 import {
     GRID_FILTERABLE,
@@ -11,8 +11,46 @@ import {
     LOCALIZATION_NAMESPACE
 } from "../../constants/constants";
 
-const GridView = ({ features, t }) => {
+const GridView = (props) => {
+    const { features, t, settings } = props;
     const locale = getLocale()?.name;
+    let gridGridComponents = [...gridComponents]
+    let gridTrComponents = [...trComponents]
+
+    useEffect(() => {
+        //todo: add config to behavior settings
+        const AddToSelection = componentRegistry.getComponent("AddToSelection");
+        const RemoveFromSelection = componentRegistry.getComponent(
+            "RemoveFromSelection"
+        );
+        const ReportingButton = componentRegistry.getComponent("ReportingButton")
+
+        const AddToSelectionButtons = [{ component: AddToSelection, settings: {} }];
+        const RemoveFromSelectionButtons = [{ component: RemoveFromSelection, settings: {} }];
+        const ReportingButtonComponent = [{ component: ReportingButton, settings: {} }];
+        //#region special case for the spatial search settings only
+        if (settings.behaviorSettings?.selectFeature) {
+            gridTrComponents.push(...AddToSelectionButtons);
+        }
+        if (settings.behaviorSettings?.unselectFeature) {
+            gridTrComponents.push(...RemoveFromSelectionButtons);
+        }
+
+        if (settings.behaviorSettings?.selectAllFeatures) {
+            gridGridComponents.push(...AddToSelectionButtons);
+        }
+
+
+        if (settings.behaviorSettings?.unselectAllFeatures) {
+            gridGridComponents.push(...RemoveFromSelectionButtons);
+        }
+        if (settings.behaviorSettings?.allowReporting && ReportingButton) {
+            gridGridComponents.push(...ReportingButtonComponent);
+            gridTrComponents.push(...ReportingButtonComponent);
+        }
+
+        //#endregion
+    }, [settings])
 
     const mapFeatureToPreview = (feature) => ({
         Id: feature.id,
@@ -67,7 +105,8 @@ const GridView = ({ features, t }) => {
     return (
         <GridComponents.Grid
             settings={gridSettings}
-            trComponents={trComponents}
+            trComponents={gridTrComponents}
+            gridComponents={gridGridComponents}
         />
     );
 
