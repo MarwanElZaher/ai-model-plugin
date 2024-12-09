@@ -5,7 +5,7 @@ const CustomButton = ({ onClick, label, iconKey, className, isDisabled }) => {
         <button
             disabled={isDisabled}
             onClick={onClick}
-            className={`penta-button ${className}`}
+            className={iconKey ? className : `penta-button ${className}`}
             title={label}
         >
             {iconKey && <ReactSVG src={iconKey} />}

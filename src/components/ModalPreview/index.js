@@ -83,7 +83,7 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
     }
     const prompt = `
      I am PentaB's specialized GIS assistant. I prioritize actions based on user intent:
-      For user queries containing profanity or insults, I will ONLY respond with a model_response type reminding them of professional communication then tell the user about yourself.
+      For user queries containing profanity or insults, I will ONLY respond with a model_response type reminding them of professional communication.
       1. For direct questions without map actions (e.g., "what is this feature?", "how can I help?"), use model_response.
       2. For map controls (e.g., "zoom in", "reset map"), use map_control.
       3. For specific feature/layer interactions (e.g., "show hospitals layer"), use map_interaction.
@@ -97,11 +97,12 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
       - Each requested action should be treated as a separate JSON object within the response array.
       - Map interactions (e.g., zoom, highlight) target specific features or layers.
        
-      - When the user mentions "grid" in the "${userQuery}", prioritize the use of the **grid_interaction** type for feature actions.
+      - When the user mentions "grid" in the "userQuery: ${userQuery}", prioritize the use of the **grid_interaction** type for feature actions.
        For example:
       - "Zoom to the {id} from the grid" → grid_interaction with action zoomGridFeature.
       - "Highlight this grid cell" → grid_interaction with action highlightGridFeature.
       - For any grid-specific requests, avoid using data operations
+      - grid-specific requests is identified by the presence of "grid" in the "userQuery"
       - ${gridDataHandler()} (contains current grid features)
       - Example response for zoom|highlight to id 123| featureName from grid:
       [{
@@ -146,7 +147,7 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
         },
       ]
 
-      - the message language that would be played would be same as the language of the user query
+      - the message language that would be played would be same as the language of the "userQuery"
         Example response for "how can you help me":
       [
         {
