@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { clearHighlights, executeDataAction, highlightFeatureGeometry, layerVisibility, notify, resetMap, setZoom, terminate, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
+import { clearHighlights, executeDataAction, highlightFeatureGeometry, layerVisibility, notify, panMap, resetMap, setZoom, terminate, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
 import { withLocalize, selectorsRegistry, actionsRegistry } from '@penta-b/ma-lib';
 import SpeechToText from '../SpeechToText';
 import { connect } from 'react-redux';
@@ -8,7 +8,7 @@ import { GRID_VIEW, LOCALIZATION_NAMESPACE } from '../../constants/constants';
 import { clearResponse, setGridVisible, setModalMessage, setModalResponse, setNewComponentId, setUserQuery } from '../../actions/actions';
 import TextToSpeech from '../TextToSpeech';
 
-function ModalPreview({ settings, features, projection, userQuery, setUsersQuery, gridVisible, setGridVisiblity, componentId, setNewId, showGrid, removeComponent, setResponse, modalResponse, t, setMessage }) {
+function ModalPreview({ settings, features, projection, userQuery, setUsersQuery, gridVisible, setGridVisiblity, componentId, setNewId, showGrid, removeComponent, setResponse, modalResponse, t, setMessage, selectMapBBox, setMapBBox }) {
 
 
   // a shared context to store results between actions
@@ -82,86 +82,78 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
       `;
     }
     const prompt = `
-     I am PentaB's specialized GIS assistant. I prioritize actions based on user intent:
-      For user queries containing profanity or insults, I will ONLY respond with a model_response type reminding them of professional communication.
-      1. For direct questions without map actions (e.g., "what is this feature?", "how can I help?"), use model_response.
-      2. For map controls (e.g., "zoom in", "reset map"), use map_control.
-      3. For specific feature/layer interactions (e.g., "show hospitals layer"), use map_interaction.
-      4. For data queries (e.g., "find Cairo"), use data_operation.
-      5. For grid operations (e.g., "zoom to feature with id|featureName from "grid""), use grid_interaction.
+    I am PentaB's specialized GIS assistant. I prioritize actions based on user intent and the presence of "grid" in queries:
 
-      Context:
-      - Map controls are global actions that affect the map as a whole (e.g., zooming in/out, resetting the map, clearing highlights).
-      - Map interactions target specific layers or features (e.g., highlighting a feature, zooming to a feature, showing or hiding layers).
-       - User can request multiple actions in a single sentence, such as "zoom and highlight".
-      - Each requested action should be treated as a separate JSON object within the response array.
-      - Map interactions (e.g., zoom, highlight) target specific features or layers.
-       
-      - When the user mentions "grid" in the "userQuery: ${userQuery}", prioritize the use of the **grid_interaction** type for feature actions.
-       For example:
-      - "Zoom to the {id} from the grid" → grid_interaction with action zoomGridFeature.
-      - "Highlight this grid cell" → grid_interaction with action highlightGridFeature.
-      - For any grid-specific requests, avoid using data operations
-      - grid-specific requests is identified by the presence of "grid" in the "userQuery"
-      - ${gridDataHandler()} (contains current grid features)
-      - Example response for zoom|highlight to id 123| featureName from grid:
-      [{
-        "type": "grid_interaction",
-        "action": "zoomGridFeature|highlightGridFeature|removeGrid",
-        "target": feature.id,
-      }]  
+     If userQuery includes "grid":
+     - Return ONLY grid_interaction type responses
+     - Example formats:
+       - "Zoom to {id} from grid" → grid_interaction with zoomGridFeature
+       - "Highlight grid cell" → grid_interaction with highlightGridFeature
+     
+     Otherwise, follow these priorities:
+     1. For queries with profanity/insults → model_response (professional reminder)
+     2. For direct questions → model_response
+     3. For map controls → map_control
+     4. For feature/layer interactions → map_interaction
+     5. For data queries → data_operation
 
+     Context:
+     - Map controls: global actions (zoom, reset, clear)
+     - Map interactions: layer/feature specific actions
+     - Multiple actions per sentence supported
+     - Each action = separate JSON object
+     - ${gridDataHandler()} (current grid features)
+     - Available Layers: ${layerFieldsHandler()}
 
-      - If a feature needs to be highlighted, first perform a data operation to retrieve the feature, then zoom to and highlight it sequentially.
-      - for example:
-        - User Request: "Zoom to Cairo" | "where is cairo" → data operation to retrieve Cairo feature, then map interaction to zoom to Cairo.
-        - User Request: "Highlight Cairo" | "where is cairo" → data operation to retrieve Cairo feature, then map interaction to highlight Cairo.
-      - Available Layers and its fields: ${layerFieldsHandler()}
-      User Request: ${userQuery}
+     User Request: ${userQuery}
 
-      Respond with JSON array of actions:
-      [
-              {
-          "type": "data_operation",
-          "action": "query",
-          "target": layer.id,
-          "parameters": {
-              layerId: {layer.id} //layerId is the uuid of the layer, 
-              "crs": layer.crs,
-              "searchText": "{searchText}"
-              },
-        },
-        {
-          "type": "map_interaction",
-          "action": "zoom|pan|highlight|showLayer|hideLayer",
-          "target": "layer.id",
-          "parameters": { additional_details },
-          "message": {message to be played to the user}
-        },
-        {
-          "type": "map_control",
-          "action": "zoomIn|zoomOut|setZoom|reset|clear|clearHighlights",
-          "target": "map",
-          "parameters": {zoomLevel},
-          "message": {message to be played to the user}
-        },
-      ]
-
-      - the message language that would be played would be same as the language of the "userQuery"
-        Example response for "how can you help me":
-      [
-        {
-          "type": "model_response",
-          "action": "setMessage",
-          "message": "I can help you with map operations like: finding and highlighting locations, zooming to specific areas, showing/hiding layers, managing the grid view, and controlling map zoom levels. You can ask me things like 'find Cairo', 'zoom in', or 'show hospitals layer'.",
-          "parameters": {
-            "type": "info"
-          }
-        }
-      ]
-        if user asks for highlighting a feature|layer we should do data operations to get the feature then highlight it
-        always respond with a valid JSON
-    `;
+     Response format (JSON array):
+     [
+       {
+         "type": "grid_interaction",
+         "action": "zoomGridFeature|highlightGridFeature|removeGrid",
+         "target": feature.id
+       }
+       // OR
+       {
+         "type": "data_operation",
+         "action": "query",
+         "target": layer.id,
+         "parameters": {
+             layerId: layer.id,
+             "crs": layer.crs,
+             "searchText": "searchText"
+         }
+       },
+       {
+         "type": "map_interaction",
+         "action": "zoom|highlight|showLayer|hideLayer",
+         "target": "layer.id",
+         "parameters": { additional_details },
+         "message": "user message"
+       },
+       {
+         "type": "map_control",
+         "action": "zoomIn|zoomOut|setZoom|reset|clear|clearHighlights|pan",
+         "target": "map",
+         "parameters": {zoomLevel}|{panDirection: "up|down|right|left", panAmount: "must be number"},
+         "message": "user message"
+       },
+       {
+         "type": "model_response",
+         "action": "setMessage",
+         "message": "response message",
+         "parameters": {
+           "type": "info"
+         }
+       }
+     ]
+     
+     Notes:
+     - Message language matches userQuery language
+     - For highlighting: perform data operation first, then highlight
+     - Always return valid JSON
+   `;
     console.log(prompt, "prompt")
 
     try {
@@ -273,6 +265,10 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
       case 'clearHighlights':
         clearHighlights();
         break;
+      case 'pan':
+        const newMapBBox = panMap(selectMapBBox, action?.parameters?.panDirection, action?.parameters?.panAmount);
+        setMapBBox(newMapBBox);
+        break;
       default:
         const message = `Unknown map control action: ${action.action}`;
         console.warn(message);
@@ -338,11 +334,18 @@ const mapStateToProps = (state, { reducerId }) => {
       state,
       reducerId
     ),
+    selectMapBBox: selectorsRegistry.getSelector(
+      "selectMapBBox",
+      state,
+      reducerId
+    ),
   };
 };
 
 const mapDispatchToProps = (dispatch) => {
   return {
+    setMapBBox: (bbox) =>
+      dispatch(actionsRegistry.getActionCreator("setMapBBOX", bbox)),
     setMessage: (messsage) => dispatch(setModalMessage(messsage)),
     setNewId: (componentId) => dispatch(setNewComponentId(componentId)),
     showGrid: (props, onAdd, onRemove) =>

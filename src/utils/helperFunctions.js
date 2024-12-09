@@ -84,7 +84,22 @@ export const layerVisibility = (layerId, visibility) => {
 };
 
 
+export const panMap = (extent, direction, panAmount = 100) => {
+  const [west, south, east, north] = extent;
 
+  switch (direction.toLowerCase()) {
+    case 'right':
+      return [west + panAmount, south, east + panAmount, north];
+    case 'left':
+      return [west - panAmount, south, east - panAmount, north];
+    case 'up':
+      return [west, south + panAmount, east, north + panAmount];
+    case 'down':
+      return [west, south - panAmount, east, north - panAmount];
+    default:
+      return extent;
+  }
+}
 export const purge = () => {
   bufferVl.clear();
   actorVl.clear();
@@ -175,3 +190,5 @@ export const executeDataAction = async (action, actionContext, projection, setGr
   handleQueryResponse(queryResponse, actionContext, setGridVisible, setResponse, setMessage);
 
 };
+
+
