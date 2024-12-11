@@ -6,6 +6,7 @@ import {
 } from "@penta-b/ma-lib";
 
 import { executeQuery, executeQueryFeature } from './query';
+import { QUERY_TYPES, RESPONSE_TYPE } from "../constants/constants";
 export const dispatch = actionsRegistry.dispatch.bind(actionsRegistry);
 export const storeDispatch = store.dispatch.bind(store);
 
@@ -121,14 +122,26 @@ export const debounce = (func, wait) => {
   };
 };
 
-const RESPONSE_TYPE = {
-  NONE: 'NONE',
-  SINGLE: 'SINGLE',
-  MULTIPLE: 'MULTIPLE'
+
+const getResponseType = (response, queryType) => {
+  switch (queryType) {
+    case QUERY_TYPES.FTS:
+      return getResponseTypeForFTS(response);
+    case QUERY_TYPES.QF:
+      return getResponseTypeForQF(response);
+  }
+
+
 };
-const getResponseType = (response) => {
-  if (!response?.length) return RESPONSE_TYPE.NONE;
+const getResponseTypeForFTS = (response) => {
+  if (!response.length) return RESPONSE_TYPE.NONE;
   if (response.length == 1) return RESPONSE_TYPE.SINGLE;
+  return RESPONSE_TYPE.MULTIPLE;
+};
+
+const getResponseTypeForQF = (response) => {
+  if (!response?.[0]?.count) return RESPONSE_TYPE.NONE;
+  if (response?.[0]?.count == 1) return RESPONSE_TYPE.SINGLE;
   return RESPONSE_TYPE.MULTIPLE;
 };
 
@@ -148,10 +161,11 @@ export const handleQueryResponse = async (
   actionContext,
   setGridVisible,
   setResponse,
-  setMessage
+  setMessage,
+  queryType
 ) => {
   // Determine response type
-  const responseType = getResponseType(queryResponse);
+  const responseType = getResponseType(queryResponse, queryType);
 
   switch (responseType) {
     case RESPONSE_TYPE.NONE:
@@ -187,7 +201,8 @@ export const executeFullTextSearchAction = async (action, actionContext, project
     mapProjection,
     action.parameters.searchText
   );
-  handleQueryResponse(queryResponse, actionContext, setGridVisible, setResponse, setMessage);
+  if (!queryResponse) return;
+  handleQueryResponse(queryResponse, actionContext, setGridVisible, setResponse, setMessage, QUERY_TYPES.FTS);
 
 };
 
@@ -206,7 +221,9 @@ export const executeAdvancedQuery = async (action, projection, actionContext, se
     action.parameters.filter?.conditionList,
     actionContext?.tagertedFeatureRef
   );
-  handleQueryResponse(queryResponse, actionContext, setGridVisible, setResponse, setMessage);
+  const responseData = queryResponse?.data;
+  if (!responseData) return;
+  handleQueryResponse(responseData, actionContext, setGridVisible, setResponse, setMessage, QUERY_TYPES.QF);
 
 };
 
