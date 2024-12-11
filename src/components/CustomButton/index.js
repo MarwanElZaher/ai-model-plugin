@@ -1,10 +1,11 @@
 import { ReactSVG } from "react-svg";
 import React from "react";
-const CustomButton = ({ onClick, label, iconKey, className, isDisabled }) => {
+const CustomButton = ({ onClick, label, iconKey, className, isDisabled, handleKeyDown }) => {
     return (
         <button
             disabled={isDisabled}
             onClick={onClick}
+            onKeyDown={!isDisabled ? handleKeyDown : null}
             className={iconKey ? className : `penta-button ${className}`}
             title={label}
         >
@@ -13,4 +14,5 @@ const CustomButton = ({ onClick, label, iconKey, className, isDisabled }) => {
         </button>
     );
 };
-export default CustomButton
+
+export default CustomButton;
