@@ -91,8 +91,9 @@ export const executeQuery = async (layerId, crs, searchText) => {
 const mapConditionsWithGeometry = (conditions, targetLocation) => {
     // Iterate through conditions and update geometry if it exists
     return conditions.map(condition => {
+        const options = { highQuality: true };
         //convert geometry to simplified format
-        const simplifiedCoordinates = simplify(targetLocation);
+        const simplifiedCoordinates = simplify(targetLocation, options);
         console.log(simplifiedCoordinates, "simplifiedCoordinates")
 
         // Check if condition has the dummy geometry coming from ai response
