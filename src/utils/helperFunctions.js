@@ -4,7 +4,8 @@ import {
   apiRegistry,
   actionsRegistry,
 } from "@penta-b/ma-lib";
-import { executeQuery } from './query';
+
+import { executeQuery, executeQueryFeature } from './query';
 export const dispatch = actionsRegistry.dispatch.bind(actionsRegistry);
 export const storeDispatch = store.dispatch.bind(store);
 
@@ -176,8 +177,7 @@ export const handleQueryResponse = async (
  * Executes data query on a specfic layer, feature
  * @param {*} action action object
  */
-export const executeDataAction = async (action, actionContext, projection, setGridVisible, setResponse, setMessage) => {
-  console.log(action, 'action', 'data')
+export const executeFullTextSearchAction = async (action, actionContext, projection, setGridVisible, setResponse, setMessage) => {
 
   if (action.action != 'query') return;
 
@@ -191,4 +191,22 @@ export const executeDataAction = async (action, actionContext, projection, setGr
 
 };
 
+
+
+//-----------------------------------------------------
+
+export const executeAdvancedQuery = async (action, projection, actionContext, setGridVisible, setResponse, setMessage) => {
+  if (action.action != 'advancedQuery') return;
+
+  const mapProjection = projection?.code || action.parameters.crs;
+  const queryResponse = await executeQueryFeature(
+    action.parameters.dataSource,
+    mapProjection,
+    action.parameters.returns,
+    action.parameters.filter?.conditionList,
+    actionContext?.tagertedFeatureRef
+  );
+  handleQueryResponse(queryResponse, actionContext, setGridVisible, setResponse, setMessage);
+
+};
 
