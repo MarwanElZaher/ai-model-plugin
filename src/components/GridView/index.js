@@ -10,9 +10,10 @@ import {
     GRID_SORTABLE,
     LOCALIZATION_NAMESPACE
 } from "../../constants/constants";
+import { setModalMessage } from "../../actions/actions";
 
 const GridView = (props) => {
-    const { features, t, settings } = props;
+    const { features, t, settings, setMessage } = props;
     const locale = getLocale()?.name;
     let gridGridComponents = [...gridComponents]
     let gridTrComponents = [...trComponents]
@@ -51,6 +52,13 @@ const GridView = (props) => {
 
         //#endregion
     }, [settings])
+
+    useEffect(() => {
+        if (features?.length > 0) {
+            const count = features[0]?.count ?? features.length;
+            setMessage(`${count} ${t("features found Choose Which One to do action on")}`);
+        }
+    }, [features]);
 
     const mapFeatureToPreview = (feature) => ({
         Id: feature.id,
@@ -118,6 +126,7 @@ const mapStateToProps = (state, ownProps) => {
 };
 const mapDispatchToProps = (dispatch, ownProps) => {
     return {
+        setMessage: (messsage) => dispatch(setModalMessage(messsage)),
 
     };
 };
