@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect } from 'react';
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { clearHighlights, executeDataAction, highlightFeatureGeometry, layerVisibility, notify, panMap, resetMap, setZoom, terminate, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
+import { clearHighlights, executeAdvancedQuery, executeFullTextSearchAction, highlightFeatureGeometry, layerVisibility, notify, panMap, resetMap, setZoom, terminate, zoomIn, zoomOut, zoomToFeature } from '../../utils/helperFunctions';
 import { withLocalize, selectorsRegistry, actionsRegistry } from '@penta-b/ma-lib';
 import SpeechToText from '../SpeechToText';
 import { connect } from 'react-redux';
@@ -19,7 +19,7 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
 
   useEffect(() => {
     if (gridVisible && !componentId) {
-      showGrid({ title: t("features with similar spelling"), icon: t("icon") }, (id) => {
+      showGrid({ title: t("features found"), icon: t("icon") }, (id) => {
         setNewId(id);
       }, () => {
         setResponse([])
@@ -46,11 +46,6 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
     }
   }, [userQuery]);
 
-  useEffect(() => {
-    if (modalResponse.length > 0) {
-      setMessage(`${modalResponse.length} features found Choose Which One to do action on`)
-    }
-  }, [modalResponse]);
 
   const dispatchActions = useCallback(async () => {
     const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
@@ -95,7 +90,108 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
      2. For direct questions → model_response
      3. For map controls → map_control
      4. For feature/layer interactions → map_interaction
-     5. For data queries → data_operation
+     5. For data queries → Choose based on query complexity:
+
+     Simple Queries (use single query):
+        - Basic text search: "find cairo" | "search for cairo" | "where is street 9"
+        - Use case: When searching text across layer
+        Example Response:
+        [
+          {
+            "type": "data_operation",
+            "action": "query",
+            "target": "layer.id",
+            "parameters": {
+              "layerId": "layer.id",
+              "searchText": "searchText",
+              "returnGeometry": true
+            }
+          }
+        ]
+                
+        Complex Queries (use query + advancedQuery):
+        - Spatial queries: 
+          * Pattern: "{feature} in|inside|within {location}"
+          * Example: "hospitals in Alexandria" triggers:
+            1. First query to get Alexandria from governorates layer
+            2. Then advancedQuery to find hospitals within that geometry
+        
+        - Attribute queries:
+          * Pattern: "{feature} with {condition} {value}"
+          * Example: "hospitals with more than 100 patients"
+        
+        - Combined queries:
+          * Pattern: "{feature} with {condition} {value} in {location}"
+          * Example: "hospitals with 100 patients in Alexandria"
+
+     Example 1 - Simple text search:
+     Query: "find cairo"
+     Response:
+     [
+       {
+         "type": "data_operation",
+         "action": "query",
+         "target": "layer.id",
+         "parameters": {
+           "layerId": "layer.id",
+           "searchText": "cairo",
+           "returnGeometry": true
+         }
+       }
+     ]
+
+     Example 2 - Complex spatial query:
+     Query: "hospitals in Alexandria"
+     Response:
+     [
+       {
+         "type": "data_operation",
+         "action": "query",
+         "target": {layer.id},
+         "parameters": {
+           "layerId": {layer.id},  // Use specific layer ID
+           "searchText": "Alexandria", 
+           "returnGeometry": true
+         }
+       },
+       {
+         "type": "data_operation",
+         "action": "advancedQuery",
+         "target": "hospitals",
+         "parameters": {
+           "returnAs": "json",
+           "dataSource": {
+             "id": {layer.id}  // Using layer ID uuid
+           },
+           "pageNumber": 1,
+           "pageSize": 100,
+           "crs": "layer.crs",
+           "filter": {
+             "conditionList": [
+             {
+                 "geometry": "@previous.geometry",
+                 "key": "geom",
+                 "spatialRelation": "INTERSECT"
+              },
+               {
+                 "key": "fieldName",
+                 "operator": "=|>|<|>=|<=|like|!=|<>",
+                 "value": "value"
+             },
+             ],
+             "logicalOperation": "AND"
+           },
+           "returns": [
+             {
+               "fieldName": "id"
+             },
+             {
+               "fieldName": "name"
+             }
+           ]
+         }
+       }
+     ]
 
      Context:
      - Map controls: global actions (zoom, reset, clear)
@@ -104,6 +200,7 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
      - Each action = separate JSON object
      - ${gridDataHandler()} (current grid features)
      - Available Layers: ${layerFieldsHandler()}
+     - Layer IDs are specific identifiers (e.g., {layer.id},) not the search terms
 
      User Request: ${userQuery}
 
@@ -118,17 +215,55 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
        {
          "type": "data_operation",
          "action": "query",
-         "target": layer.id,
+         "target": "layer.id",  // Use specific layer ID
          "parameters": {
-             layerId: layer.id,
-             "crs": layer.crs,
-             "searchText": "searchText"
+           "layerId": "layer.id",  // Use specific layer ID
+           "crs": "layer.crs",
+           "searchText": "searchText",
+           "returnGeometry": true
+         }
+       },
+       {
+         "type": "data_operation",
+         "action": "advancedQuery",
+         "target": "layer.id",  // Use specific layer ID
+         "parameters": {
+           "returnAs": "json",
+           "dataSource": {
+             "id": "layer.id"  // Use specific layer ID
+           },
+           "pageNumber": 1,
+           "pageSize": 100,
+           "crs": "layer.crs",
+           "filter": {
+             "conditionList": [
+             {
+                 "geometry": "geojson|@previous.geometry",
+                 "key": "geom",
+                 "spatialRelation": "INTERSECT|IN|NOT_IN|TOUCH|CONTAINED|DWITHIN"
+             },  
+              {
+                 "key": "fieldName",
+                 "operator": "=|>|<|>=|<=|like|!=|<>",
+                 "value": "value"
+             },
+             ],
+             "logicalOperation": "AND|OR"
+           },
+           "returns": [
+             {
+               "fieldName": "field1"
+             },
+             {
+               "fieldName": "field2"
+             }
+           ]
          }
        },
        {
          "type": "map_interaction",
          "action": "zoom|highlight|showLayer|hideLayer",
-         "target": "layer.id",
+         "target": "layer.id",  // Use specific layer ID
          "parameters": { additional_details },
          "message": "user message"
        },
@@ -150,8 +285,10 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
      ]
      
      Notes:
-     - Message language matches userQuery language
-     - For highlighting: perform data operation first, then highlight
+     - All responses must include a message describing the action on target in same language as userQuery
+     - For highlighting: perform data operation first
+     - Layer IDs must be specific identifiers "layer.id", not search terms
+     - Always Highlight and zoom after data operation
      - Always return valid JSON
    `;
     console.log(prompt, "prompt")
@@ -182,7 +319,7 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
               await executeMapAction(action);
               break;
             case 'data_operation':
-              await executeDataAction(action, actionContext, projection, setGridVisiblity, setResponse, setMessage);
+              await executeDataAction(action);
               break;
             case 'map_control':
               setMessage(action.message);
@@ -240,7 +377,25 @@ function ModalPreview({ settings, features, projection, userQuery, setUsersQuery
     }
   };
 
-
+  const executeDataAction = async (action) => {
+    console.log(action, 'action', 'data')
+    switch (action.action) {
+      case 'query':
+        await executeFullTextSearchAction(action, actionContext, projection, setGridVisiblity, setResponse, setMessage);
+        break;
+      //executing queryFeature on a single feature
+      case 'advancedQuery':
+        if (actionContext?.tagertedFeatureRef == 1) {
+          await executeAdvancedQuery(action, projection, actionContext, setGridVisiblity, setResponse, setMessage);
+        }
+        break;
+      default:
+        const message = `Unknown data action: ${action.action}`;
+        console.warn(message);
+        setMessage(message);
+        break;
+    }
+  }
 
 
   /**
