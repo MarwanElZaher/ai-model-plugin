@@ -35,6 +35,7 @@
     "@google/generative-ai": "^0.21.0",
     "@lobehub/tts": "^1.25.8",
     "@penta-b/grid": "^1.0.24",
+    "@turf/simplify": "^7.1.0",
     "axios": "^1.7.7",
     "dotenv": "^16.4.5",
     "react": "^16.8.1",
