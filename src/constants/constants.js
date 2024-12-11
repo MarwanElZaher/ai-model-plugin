@@ -5,7 +5,15 @@ export const GRID_FILTERABLE = true;
 export const GRID_SORTABLE = true;
 export const GRID_PAGE_SIZE_OPTIONS = [5, 10];
 export const GRID_PAGE_SIZE = 10;
-
+export const RESPONSE_TYPE = {
+   NONE: 'NONE',
+   SINGLE: 'SINGLE',
+   MULTIPLE: 'MULTIPLE'
+};
+export const QUERY_TYPES = {
+   FTS: 'FTS',
+   QF: 'QF'
+}
 export const prompts = `
 You are an assistant that processes user commands to manipulate a map. When a user gives a command, you should return a structured response with the action and target location or feature.
 
