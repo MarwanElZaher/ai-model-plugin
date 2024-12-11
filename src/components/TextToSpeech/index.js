@@ -9,7 +9,8 @@ const TextToSpeech = ({ message }) => {
 
     const getVoiceConfig = (text) => {
         return isArabic(text)
-            ? { locale: 'ar-SA', voice: 'ar-SA-HamedNeural' }
+            // ar-SA-HamedNeural is the voice for arabic
+            ? { locale: 'ar-SA', voice: 'ar-SA-ZariyahNeural' }
             : { locale: 'en-US', voice: 'en-US-GuyNeural' };
     };
 
