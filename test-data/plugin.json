@@ -1,4 +1,4 @@
 {
-    "name": "ai-model-plugin",
-    "url": "http://localhost:3001/ai-model-plugin.js"
+    "name": "plugin-ai-model",
+    "url": "http://localhost:3001/plugin-ai-model.js"
 }

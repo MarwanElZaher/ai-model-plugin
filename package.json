@@ -1,5 +1,5 @@
 {
-  "name": "ai-model-plugin",
+  "name": "plugin-ai-model",
   "version": "1.0.0",
   "description": "",
   "main": "src/index.js",

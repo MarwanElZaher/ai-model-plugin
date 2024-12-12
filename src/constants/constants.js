@@ -1,4 +1,4 @@
-export const LOCALIZATION_NAMESPACE = "ai-model-plugin";
+export const LOCALIZATION_NAMESPACE = "plugin-ai-model";
 export const GRID_VIEW = "GridView";
 // grid options 
 export const GRID_FILTERABLE = true;

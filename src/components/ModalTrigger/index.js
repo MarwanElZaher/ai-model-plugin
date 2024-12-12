@@ -29,7 +29,7 @@ const ModalTrigger = ({ showComponent, removeComponent, t, deactivate, isActive 
 
 const mapDispatchToProps = (dispatch) => {
   return {
-    showComponent: (props, onAdd) => dispatch(actionsRegistry.getActionCreator('showComponent', 'ai-model-plugin', 'ModalPreview', props, onAdd)),
+    showComponent: (props, onAdd) => dispatch(actionsRegistry.getActionCreator('showComponent', 'plugin-ai-model', 'ModalPreview', props, onAdd)),
     removeComponent: (id) =>
       dispatch(actionsRegistry.getActionCreator("removeComponent", id)),
   }

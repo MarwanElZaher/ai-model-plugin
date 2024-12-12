@@ -16,11 +16,11 @@ module.exports = {
     devtool: DEV_TOOL,
     entry: './src/index.js',
     output: {
-        filename: 'ai-model-plugin.js',
+        filename: 'plugin-ai-model.js',
         path: OUTPUT_PATH,
         publicPath: ASSET_PATH,
         libraryTarget: 'umd',
-        library: 'ai-model-plugin'
+        library: 'plugin-ai-model'
     },
     devServer: {
         port: 3001,

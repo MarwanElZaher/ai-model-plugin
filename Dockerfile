@@ -6,7 +6,7 @@ COPY package.json .
 COPY .npmrc .
 COPY . /app
 RUN npm install
-ENV ASSET_PATH=GATEWAY_URL/ai-model-plugin/build/
+ENV ASSET_PATH=GATEWAY_URL/plugin-ai-model/build/
 RUN npm run prod
 RUN npm run doc
 

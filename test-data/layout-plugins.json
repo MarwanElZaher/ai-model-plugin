@@ -7,7 +7,7 @@
     "modal-container": [],
     "side-bar": [
         {
-            "pluginId": "ai-model-plugin",
+            "pluginId": "plugin-ai-model",
             "components": [
                 {
                     "id": "MapClickResult",
@@ -19,7 +19,7 @@
     "map-navigation": [],
     "menu-trigger-container": [
         {
-            "pluginId": "ai-model-plugin",
+            "pluginId": "plugin-ai-model",
             "components": [
                 {
                     "id": "MapClick",
